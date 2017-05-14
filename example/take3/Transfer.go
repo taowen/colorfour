@@ -5,11 +5,17 @@ import (
 	"errors"
 )
 
-var updateAmountSql = sqlxx.Translate(
-	`UPDATE account SET amount=amount+:delta
+var updateBalanceSql = sqlxx.Translate(
+	`UPDATE balance SET amount=amount+:delta
 	WHERE account_id=:account_id AND amount+:delta > 0`)
+var insertBalanceUpdateEventSql = sqlxx.Translate(
+	`INSERT INTO balance_update_event :INSERT_COLUMNS`,
+	"balance_update_event_id", "account_id", "delta")
+var getBalanceUpdateEventSql = sqlxx.Translate(
+	`SELECT * FROM balance_update_event
+	WHERE balance_update_event_id=:balance_update_event_id`)
 
-func Transfer(conn *sqlxx.Conn, from, to string, amount int) (err error) {
+func Transfer(conn *sqlxx.Conn, referenceNumber, from, to string, amount int) (err error) {
 	err = conn.BeginTx()
 	if err != nil {
 		return
@@ -21,14 +27,59 @@ func Transfer(conn *sqlxx.Conn, from, to string, amount int) (err error) {
 			conn.CommitTx()
 		}
 	}()
-	err = doTransfer(conn, from, to, amount)
+	err = doTransfer(conn, referenceNumber, from, to, amount)
 	return
 }
 
-func doTransfer(conn *sqlxx.Conn, from, to string, amount int) error {
-	stmt := conn.Statement(updateAmountSql)
+
+func doTransfer(conn *sqlxx.Conn, referenceNumber, from, to string, amount int) (err error) {
+	if err := mayUpdateBalance(conn, referenceNumber, from, -int64(amount)); err != nil {
+		return err
+	}
+	return mayUpdateBalance(conn, referenceNumber, to, int64(amount))
+}
+
+func mayUpdateBalance(conn *sqlxx.Conn, referenceNumber, accountId string, delta int64) error {
+	shouldUpdateBalance, err := insertBalanceUpdated(conn, referenceNumber, accountId, delta)
+	if err != nil {
+		return err
+	}
+	if !shouldUpdateBalance {
+		return nil
+	}
+	return updateBalance(conn, accountId, delta)
+}
+
+func insertBalanceUpdated(conn *sqlxx.Conn, referenceNumber, accountId string, delta int64) (bool, error) {
+	balanceUpdateEventId := referenceNumber + "_" + accountId
+	stmt := conn.Statement(insertBalanceUpdateEventSql)
 	defer stmt.Close()
-	result, err := stmt.Exec("account_id", from, "delta", int64(-amount))
+	_, err := stmt.Exec("balance_update_event_id", balanceUpdateEventId, "delta", delta)
+	if err != nil {
+		if isBalanceUpdateEventExists(conn, balanceUpdateEventId) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func isBalanceUpdateEventExists(conn *sqlxx.Conn, balanceUpdateEventId string) bool {
+	stmt := conn.Statement(getBalanceUpdateEventSql)
+	defer stmt.Close()
+	rows, err := stmt.Query("balance_update_event_id", balanceUpdateEventId)
+	if err != nil {
+		return false
+	}
+	defer rows.Close()
+	err = rows.Next()
+	return err == nil
+}
+
+func updateBalance(conn *sqlxx.Conn, accountId string, delta int64) error {
+	stmt := conn.Statement(updateBalanceSql)
+	defer stmt.Close()
+	result, err := stmt.Exec("account_id", accountId, "delta", delta)
 	if err != nil {
 		return err
 	}
@@ -37,6 +88,5 @@ func doTransfer(conn *sqlxx.Conn, from, to string, amount int) error {
 		err = errors.New("not enough balance")
 		return err
 	}
-	_, err = stmt.Exec("account_id", to, "delta", int64(amount))
-	return err
+	return nil
 }
