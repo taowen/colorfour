@@ -1,4 +1,4 @@
-package take3
+package take4
 
 import (
 	"testing"
@@ -21,6 +21,19 @@ var subTests map[string]subTest = map[string]subTest{
 		should.Nil(Transfer(conn, "tran001", "acc1", "acc2", 100))
 		should.Equal(1, queryAmount(should, conn, "acc1"))
 		should.Equal(100, queryAmount(should, conn, "acc2"))
+	},
+	"transfer failed due to destination disabled": func(should *require.Assertions, conn *sqlxx.Conn) {
+		insert(should, conn, "balance",
+			"account_id", "acc1",
+			"amount", int64(101))
+		insert(should, conn, "balance",
+			"account_id", "acc2",
+			"amount", int64(0),
+			"disabled", int64(1))
+		result := Transfer(conn, "tran001", "acc1", "acc2", 100)
+		should.NotNil(result)
+		should.Equal(101, queryAmount(should, conn, "acc1"))
+		should.Equal(0, queryAmount(should, conn, "acc2"))
 	},
 	"transfer twice": func(should *require.Assertions, conn *sqlxx.Conn) {
 		insert(should, conn, "balance",
@@ -50,12 +63,13 @@ func Test_transfer(t *testing.T) {
 		t.Run(subTestName, func(t *testing.T) {
 			should := require.New(t)
 			drv := mysql.MySQLDriver{}
-			conn, err := sqlxx.Open(drv, "root:123456@tcp(127.0.0.1:3306)/take3")
+			conn, err := sqlxx.Open(drv, "root:123456@tcp(127.0.0.1:3306)/take4")
 			should.Nil(err)
 			defer conn.Close()
 			execute(should, conn, `
 			CREATE TABLE IF NOT EXISTS balance(
 			account_id VARCHAR(128),
+			disabled SMALLINT DEFAULT 0,
 			amount INT,
 			PRIMARY KEY (account_id)
 			)`)

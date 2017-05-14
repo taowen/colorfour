@@ -40,7 +40,7 @@ func doTransfer(conn *sqlxx.Conn, referenceNumber, from, to string, amount int) 
 }
 
 func mayUpdateBalance(conn *sqlxx.Conn, referenceNumber, accountId string, delta int64) error {
-	shouldUpdateBalance, err := insertBalanceUpdated(conn, referenceNumber, accountId, delta)
+	shouldUpdateBalance, err := insertBalanceUpdateEvent(conn, referenceNumber, accountId, delta)
 	if err != nil {
 		return err
 	}
@@ -50,11 +50,14 @@ func mayUpdateBalance(conn *sqlxx.Conn, referenceNumber, accountId string, delta
 	return updateBalance(conn, accountId, delta)
 }
 
-func insertBalanceUpdated(conn *sqlxx.Conn, referenceNumber, accountId string, delta int64) (bool, error) {
+func insertBalanceUpdateEvent(conn *sqlxx.Conn, referenceNumber, accountId string, delta int64) (bool, error) {
 	balanceUpdateEventId := referenceNumber + "_" + accountId
 	stmt := conn.Statement(insertBalanceUpdateEventSql)
 	defer stmt.Close()
-	_, err := stmt.Exec("balance_update_event_id", balanceUpdateEventId, "delta", delta)
+	_, err := stmt.Exec(
+		"balance_update_event_id", balanceUpdateEventId,
+		"account_id", accountId,
+		"delta", delta)
 	if err != nil {
 		if isBalanceUpdateEventExists(conn, balanceUpdateEventId) {
 			return false, nil
