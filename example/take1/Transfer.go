@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-var queryAmountSql = sqlxx.Translate("SELECT * FROM take1.account WHERE account_id=:account_id")
+var queryAmountSql = sqlxx.Translate("SELECT * FROM account WHERE account_id=:account_id")
 var updateAmountSql = sqlxx.Translate(`UPDATE account SET amount=amount+:delta WHERE account_id=:account_id`)
 
 func Transfer(conn *sqlxx.Conn, from, to string, amount int) (err error) {
@@ -15,9 +15,9 @@ func Transfer(conn *sqlxx.Conn, from, to string, amount int) (err error) {
 	}
 	defer func() {
 		if err != nil {
-			conn.RollbackTx()
+			err = conn.RollbackTx()
 		} else {
-			conn.CommitTx()
+			err = conn.CommitTx()
 		}
 	}()
 	err = assertBalanceIsEnough(conn, from, amount)

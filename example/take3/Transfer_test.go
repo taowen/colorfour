@@ -1,11 +1,11 @@
-package take2
+package take3
 
 import (
 	"testing"
 	"github.com/taowen/sqlxx"
+	"github.com/taowen/colorfour/tmp/.cache/govendor/github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 	"database/sql/driver"
-	"github.com/go-sql-driver/mysql"
 )
 
 type subTest func(should *require.Assertions, conn *sqlxx.Conn)
@@ -19,8 +19,8 @@ var subTests map[string]subTest = map[string]subTest{
 			"account_id", "acc2",
 			"amount", int64(0))
 		should.Nil(Transfer(conn, "acc1", "acc2", 100))
-		should.Equal(100, queryAmount(should, conn, "acc2"))
 		should.Equal(1, queryAmount(should, conn, "acc1"))
+		should.Equal(100, queryAmount(should, conn, "acc2"))
 	},
 	"not enough balance to transfer out": func(should *require.Assertions, conn *sqlxx.Conn) {
 		insert(should, conn, "account",
@@ -38,17 +38,17 @@ func Test_transfer(t *testing.T) {
 		t.Run(subTestName, func(t *testing.T) {
 			should := require.New(t)
 			drv := mysql.MySQLDriver{}
-			conn, err := sqlxx.Open(drv, "root:123456@tcp(127.0.0.1:3306)/take2")
+			conn, err := sqlxx.Open(drv, "root:123456@tcp(127.0.0.1:3306)/take3")
 			should.Nil(err)
+			defer conn.Close()
 			execute(should, conn, `
-			CREATE TABLE IF NOT EXISTS account(
+			CREATE TABLE IF NOT EXISTS balance(
 			account_id VARCHAR(128),
 			amount INT,
 			PRIMARY KEY (account_id)
 			)`)
-			execute(should, conn, `TRUNCATE TABLE account`)
+			execute(should, conn, `TRUNCATE TABLE balance`)
 			subTest(should, conn)
-			conn.Close()
 		})
 	}
 }
@@ -77,7 +77,7 @@ func execute(should *require.Assertions, conn *sqlxx.Conn, sql string) {
 
 
 func queryAmount(should *require.Assertions, conn *sqlxx.Conn, accountId string) int {
-	stmt := conn.TranslateStatement(`SELECT * FROM account WHERE account_id=:account_id`)
+	stmt := conn.TranslateStatement(`SELECT * FROM balance WHERE account_id=:account_id`)
 	defer stmt.Close()
 	rows, err := stmt.Query("account_id", accountId)
 	should.Nil(err)

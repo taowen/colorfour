@@ -1,4 +1,4 @@
-package take2
+package take3
 
 import (
 	"github.com/taowen/sqlxx"
@@ -18,7 +18,7 @@ func Transfer(conn *sqlxx.Conn, from, to string, amount int) (err error) {
 		if err != nil {
 			conn.RollbackTx()
 		} else {
-			err = conn.CommitTx()
+			conn.CommitTx()
 		}
 	}()
 	err = doTransfer(conn, from, to, amount)
@@ -33,9 +33,6 @@ func doTransfer(conn *sqlxx.Conn, from, to string, amount int) error {
 		return err
 	}
 	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
 	if rowsAffected == 0 {
 		err = errors.New("not enough balance")
 		return err

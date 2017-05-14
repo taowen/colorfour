@@ -3,9 +3,9 @@ package take1
 import (
 	"testing"
 	"github.com/taowen/sqlxx"
-	"github.com/taowen/colorfour/tmp/.cache/govendor/github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 	"database/sql/driver"
+	"github.com/go-sql-driver/mysql"
 )
 
 type subTest func(should *require.Assertions, conn *sqlxx.Conn)
@@ -44,7 +44,6 @@ func Test_transfer(t *testing.T) {
 			drv := mysql.MySQLDriver{}
 			conn, err := sqlxx.Open(drv, "root:123456@tcp(127.0.0.1:3306)/take1")
 			should.Nil(err)
-			defer conn.Close()
 			execute(should, conn, `
 			CREATE TABLE IF NOT EXISTS account(
 			account_id VARCHAR(128),
@@ -53,6 +52,7 @@ func Test_transfer(t *testing.T) {
 			)`)
 			execute(should, conn, `TRUNCATE TABLE account`)
 			subTest(should, conn)
+			conn.Close()
 		})
 	}
 }
