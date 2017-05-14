@@ -3,10 +3,20 @@
 	"ignore": "test",
 	"package": [
 		{
+			"path": "appengine/cloudsql",
+			"revision": ""
+		},
+		{
 			"checksumSHA1": "dvabztWVQX8f6oMLRyv4dLH+TGY=",
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "346938d642f2ec3594ed81d874461961cd0faa76",
 			"revisionTime": "2016-10-29T20:57:26Z"
+		},
+		{
+			"checksumSHA1": "/A5P2s8crcwfDyqHKCh16Yt9jd4=",
+			"path": "github.com/go-sql-driver/mysql",
+			"revision": "382e13d099fcf5f5994290892ab258fbebbdc5e3",
+			"revisionTime": "2017-05-12T15:29:33Z"
 		},
 		{
 			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
@@ -25,6 +35,12 @@
 			"path": "github.com/stretchr/testify/require",
 			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
 			"revisionTime": "2017-01-30T11:31:45Z"
+		},
+		{
+			"checksumSHA1": "CP2YdsCjl6xpi5c+6qU2dT1qt20=",
+			"path": "github.com/taowen/sqlxx",
+			"revision": "5b2fbbfe23ebb1e2af3fb28cea51afcd081330c7",
+			"revisionTime": "2017-03-13T15:41:51Z"
 		}
 	],
 	"rootPath": "github.com/taowen/colorfour"
